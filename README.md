@@ -2,13 +2,13 @@
 <h3 align="center"> Prática Docker/AWS </h3>
 
 
-<p align="center">
+<!-- <p align="center">
   <a href="#-Objetivo">Objetivo</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
   <a href="#-Requisitos-AWS">Requisitos AWS</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
   <a href="#-Requisitos-no-linux">Requisitos no linux</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
   <a href="#-Instruções-de-Execução">Instruções de Execução</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
   <a href="#-Referências">Referências</a>
-</p>
+</p> -->
 
 
 ## 🚀 Objetivo
@@ -245,6 +245,25 @@ Variáveis utilizadas no arquivo docker-compose:
 - ORDPRESS_DB_NAME: Especifica o nome do banco de dados do WordPress.
 
 - O WordPress estará acessível em http://localhost:8080 (ou em outra porta se você alterou a configuração do arquivo), substitua "localhost" pelo endereço na sua instancia EC2 e lembre-se de que é necessário que a porta 8080 esteja liberada nas regras de entrada do grupo de segurança em que a mesma pertence.
+
+## Testando a conexão com o banco MySQL (RDS)
+- Acesse o container criado anteriormente através do seu ID e com o comando:
+```
+docker exec -it <ID_do_contêiner_wordpress> /bin/bash
+```
+- Depois de acessar o terminal do container tente executar o seguinte comando para testar a conexão com o RDS:
+```
+nc -vz <nome_do_host_do_banco_de_dados> 3306
+```
+ Substitua <nome_do_host_do_banco_de_dados> pelo endpoint do seu RDS lá da AWS. O comando deve retornar algo como esta mensagem de secessed:
+  FOTO
+- Caso dê algum erro no comando é porque o pacote netcat não vem instalado como padrão do container. Execute os dois comandos abaixo e tente novamente.
+```
+apt-get update
+```
+```
+apt-get install -y netcat
+```
 <br>
 ## 📎 Referências
 [MEditor.md](https://pandao.github.io/editor.md/index.html)<br>
