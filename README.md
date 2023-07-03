@@ -84,9 +84,8 @@ Contruir e documentar o processo de criação e configuração da seguinte arqui
 
 - Clicar em "Salvar regras".
 
-### >> LINUX
 ### Servidor NFS utilizando Elastic File System
-Antes de começarmos as configurações via SSH para EFS, navegue no serviço EC2 da AWS em Security groups.
+Antes de começarmos as configurações via chabe PPK(Putty) para EFS, navegue no serviço EC2 da AWS em Security groups.
 - Clique em criar grupo de segurança, este será utilizado para segurança de rede do EFS.
 - Depois de atribuir um nome(EFS-acess), adicione como regra de entrada para NFS com origem para o grupo de segurança criado e anexado juntamente da instancia.
 Deverá ficar assim:
@@ -109,7 +108,7 @@ Deverá ficar assim:
 sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-07d84686cb6d691f7.efs.us-east-1.amazonaws.com:/ efs
 ```
 ### Montando sistema de arquivos do EFS
-- Configure o NFS acessando sua maquina via SSH e instalando o pacote necessário através do comando:
+- Configure o NFS acessando sua maquina via PUTTY e instalando o pacote necessário através do comando:
 ```
 sudo yum install nfs-utils
 ```
