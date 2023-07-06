@@ -1,14 +1,14 @@
 <h1 align="center"> 2_Atividade_PB_Compass </h1>
-<h3 align="center"> Prática Docker/AWS </h3>
+<h3 align="center"> Prática Docker/AWS utilizando RDS, EFS, AutoScaling e LoadBalancer</h3>
 
 
-<!-- <p align="center">
+<p align="center">
   <a href="#-Objetivo">Objetivo</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
-  <a href="#-Requisitos-AWS">Requisitos AWS</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
-  <a href="#-Requisitos-no-linux">Requisitos no linux</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+  <a href="#-Descrição-dos-requisitos">Descrição dos requisitos</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+  <a href="#-Pontos-de-atenção">Pontos de atenção</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
   <a href="#-Instruções-de-Execução">Instruções de Execução</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
   <a href="#-Referências">Referências</a>
-</p> -->
+</p>
 
 
 ## 🚀 Objetivo
@@ -45,7 +45,7 @@ Contruir e documentar o processo de criação e configuração da seguinte arqui
 - Acessar a AWS na pagina do serviço EC2, e clicar em "instancias" no menu lateral esquerdo.
 - Clicar em "executar instâncias" na parte superior esquerda da tela.
 - Abaixo do campo de inserir nome clicar em "adicionar mais tags".
-- Crie e insira o valor para as chaves: Name, Project e CostCenter, selecionando "intancias", "volume" e "interface de rede" como tipos de recurso.
+- Crie e insira o valor para as chaves: Name, Project e CostCenter, selecionando "intancias", "volume" e "interface de rede" como tipos de recurso e adicionando os valores de sua preferencia.
 - Abaixo selecione também a AMI Amazon Linux 2(HVM) SSD Volume Type.
 - Selecionar como tipo de intância a família t3.small.
 - Em Par de chaves login clique em "criar novo par de chaves".
@@ -53,19 +53,10 @@ Contruir e documentar o processo de criação e configuração da seguinte arqui
 - Em configurações de rede, selecione criar grupo de segurança e permitir todos tráfegos(SSH).
 - Configure o armazenamento com 16GiB, volume raiz gp2.
 - Clique em executar instância.
-
-### Gerar Elastic IP e anexar à instância EC2
-- Acessar a pagina do serviço EC2, no menu lateral esquerdo em "Rede e Segurança" e clicar em "IPs elásticos".
-- Clicar em "Alocar endereço IP elástico".
-- Automaticamente a região padrão vai vir como "Grupo de borda de Rede" e selecionado Conjunto de endereços IPv4 públicos da Amazon.
-- Clicar em "Alocar".
-- Depois de criado selecionar o IP alocado e clicar em "Ações", "Associar endereço IP elástico".
-- Selecionar a instância EC2 criada anteriormente.
-- Selecionar o endereço IP privado já sugerido.
-- Marcar a opção "Permitir que o endereço IP elástico seja reassociado" e clicar em "Associar".
+![Instancia modelo](./images/Instancia%20modelo.PNG)
 
 ### Editar grupo de segurança liberando as portas de comunicação para acesso
-- Na pagina do serviço EC2, no menu lateral esquerdo em "Rede e Segurança" e clicar em "Security groups".
+- Na pagina do serviço EC2, no menu lateral esquerdo ir em "Rede e Segurança" e clicar em "Security groups".
 - Selecionar o grupo criado anteriormente junto com a instancia.
 - Clicar em "Regras de entrada" e do lado esquerdo da tela em "Editar regras de entrada".
 - Defina as regras como na tabela abaixo:
@@ -74,20 +65,15 @@ Contruir e documentar o processo de criação e configuração da seguinte arqui
     ---|---|---|---|---
     SSH | TCP | 22 | 0.0.0.0/0 | SSH
     TCP personalizado | TCP | 80 | 0.0.0.0/0 | HTTP
-    TCP personalizado | TCP | 443 | 0.0.0.0/0 | HTTPS
-    TCP personalizado | TCP | 111 | 0.0.0.0/0 | RPC
-    UDP personalizado | UDP | 111 | 0.0.0.0/0 | RPC
     TCP personalizado | TCP | 2049 | 0.0.0.0/0 | NFS
-    UDP personalizado | UDP | 2049 | 0.0.0.0/0 | NFS
-    MYSQL/Aurora | TCP | 3306 | 0.0.0.0/0 | 
-    TCP personalizado | TCP | 8080 | 0.0.0.0/0 | HTTP
+    MYSQL/Aurora | TCP | 3306 | 0.0.0.0/0 | RDS
 
 - Clicar em "Salvar regras".
 
-### Servidor NFS utilizando Elastic File System
-Antes de começarmos as configurações via chabe PPK(Putty) para EFS, navegue no serviço EC2 da AWS em Security groups.
+### Servidor de arquivos EFS
+Antes de começarmos as configurações via chave PPK(Putty) para EFS, navegue no serviço EC2 da AWS em Security groups.
 - Clique em criar grupo de segurança, este será utilizado para segurança de rede do EFS.
-- Depois de atribuir um nome(EFS-acess), adicione como regra de entrada para NFS com origem para o grupo de segurança criado e anexado juntamente da instancia.
+- Depois de atribuir um nome(EFS-acesso), adicione como regra de entrada o NFS com origem para o grupo de segurança criado e anexado anteriormente junto da instancia.
 Deverá ficar assim:
     Tipo | Protocolo | Intervalo de portas | Origem | Descrição
     ---|---|---|---|---
@@ -98,28 +84,32 @@ Deverá ficar assim:
 ### Criando Elastic File System
 - Ainda no ambiente da AWS, navegue até o serviço de EFS.
 - No menu lateral esquerdo clique em Sistemas de arquivos e logo após em "Criar sistema de arquivos" a direita.
-- Adicione um nome para o mesmo(sistemaArquivosEFS) e selecione a opção "personalizar".
-- Marque a opção "One zone", selecione a zona de disponibilidade em que suas EC2 está criada e avance.
-- Mantenha as opções pré-definidas, só altere o grupo de segurança para o "EFS-acess" criado anteriormente.
+- Adicione um nome para o mesmo(EFSatividadePB) e selecione a opção "personalizar".
+- Marque a opção "One Zone" e selecione a zona de disponibilidade na qual criou sua instancia.
+- Mantenha o restante das opções pré-definidas, só altere o grupo de segurança para o "EFS-acesso" criado anteriormente.
 - Revise e clique em criar para finalizar.
-- Abra o sistema de arquivos criado e clique no botão "anexar" a esquerda para visualizar as opções de montagem(IP ou DNS). 
+- Abra o sistema de arquivos criado e clique no botão "anexar" a esquerda para visualizar as opções de montagem(IP ou DNS).
 - A AWS já te dá os comandos definidos de acordo com as opções escolhidas, nesse caso vamos utilizar a montagem via DNS usando o cliente do NFS, copie o mesmo. Como no exemplo abaixo:
 ```
 sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-07d84686cb6d691f7.efs.us-east-1.amazonaws.com:/ efs
 ```
+### Acessando sua EC2 através do Putty com chave PPK
+
 ### Montando sistema de arquivos do EFS
-- Configure o NFS acessando sua maquina via PUTTY e instalando o pacote necessário através do comando:
+- Com o acesso via PUTTY, instale o pacote necessário através do comando:
 ```
 sudo yum install nfs-utils
 ```
-Ao instalar o "nfs-utils", você estará habilitando seu sistema para usar o NFS, é um protocolo que permite compartilhar diretórios e arquivos entre sistemas operacionais em uma rede.
+Ao instalar o "nfs-utils", você estará habilitando seu sistema para usar o NFS, este é um protocolo que permite compartilhar diretórios e arquivos entre sistemas operacionais em uma rede.
 - Depois disso é necessário criar um diretório de arquivos para o EFS no diretótio de montagem, através do comando:
 ```
-sudo mkdir /mnt/efs
+sudo mkdir /mnt/efs/wordpress
 ```
+Obs: Como nossa aplicação utilizará o EFS para salvar estáticos do WordPress já estamos criando uma pasta para o mesmo dentro do diretório, por critério de organização.
+
 Podemos montar o sistema de arquivos de forma manual e de forma automática.
 #### --> Manual 
-Nessa forma será necessário montar sempre que a maquina for iniciada, utilizando o comando abaixo(o mesmo copiado do sistemas de arquivos):
+Nessa forma será necessário montar sempre que a maquina for iniciada, utilizando o comando abaixo(o mesmo copiado do sistemas de arquivos anteriormente):
 ```
 sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 fs- fs-07d84686cb6d691f7.efs.us-east-1.amazonaws.com:/ /mnt/efs
 ```
@@ -131,7 +121,7 @@ df -hT | grep /mnt/efs
 ```
 Este comando lista todos os sistemas de arquivos montados no sistema e filtra apenas as linhas que contêm o diretório /mnt/efs. Se o EFS estiver montado corretamente, você verá uma linha de saída que mostra o sistema de arquivos do EFS e seus detalhes.
 
-#### --> Forma Automática
+#### --> Forma Automática(recomendada)
 
 
 - Para configurar a montagem do sistema de arquivos de forma automática é necessário editar o arquivo "etc/fstab", edite o mesmo através do comando:
@@ -158,9 +148,6 @@ Para verificar se o sistema de arquivos do EFS está realmente montado, execute 
 df -hT | grep /mnt/efs
 ```
 Este comando lista todos os sistemas de arquivos montados no sistema e filtra apenas as linhas que contêm o diretório /mnt/efs. Se o EFS estiver montado corretamente, você verá uma linha de saída que mostra o sistema de arquivos do EFS e seus detalhes.
-
-### Acessando sua EC2 através do Putty e chave PPK
-
 
 ### Criando um Script de start instance para instalação do Docker e Docker-compose
 - No local de sua preferencia crie um arquivo com extensão "sh" através do editor de texto nano ou outro de sua preferencia através do comando:
@@ -203,13 +190,23 @@ sudo chmod +x dockerinstall.sh
 ```
 /home/ec2-user/dockerinstall.sh
 ```
+## Criando RDS(MySQL)
+- Acesse o serviço RDS na sua conta AWS, no canto lateral esquerdo clique em "Banco de dados".
+- Clique no botão laranja no canto superior direito em "Criar banco de dados".
+- Selecione o métode de "criação fácil "e "MySQL" como banco de configuração.
+![tipo de banco RDS](./images/tipo%20de%20banco%20RDS.PNG)
+- Selecione também o "nível gratuito" e preencha as credenciais do banco(não esqueça de gravá-las)
+![credenciaisRDS](./images/credenciaisRDS.PNG)
+- Por último clique em "criar banco de dados" no canto inferior da tela.
+- Aguarde a criação, isso pode levar alguns minutos.
+
 ### Criando um arquivo Docker-compose
 
 - Crie um arquivo "docker-compose.yml" utilizando a linguagem YAML através do comando:
 ```
 sudo nano docker-compose.yml
 ```
-- No arquivo cole o conteúdo abaixo, nele vamos estar criando as variáveis necessárias para subir um contêiner do WordPress com os dados do banco MySQL criado anteriormente através do RDS da AWS.
+- No arquivo cole o conteúdo abaixo, nele vamos estar setando as variáveis necessárias para subir um contêiner com imagem do WordPress e com os dados do banco MySQL(RDS) criado anteriormente através da AWS.
 
 ```
 version: '3'
