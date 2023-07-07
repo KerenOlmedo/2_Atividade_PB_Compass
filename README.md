@@ -53,7 +53,6 @@ Contruir e documentar o processo de criação e configuração da seguinte arqui
 - Em configurações de rede, selecione criar grupo de segurança e permitir todos tráfegos(SSH).
 - Configure o armazenamento com 16GiB, volume raiz gp2.
 - Clique em executar instância.
-![Instancia modelo](./images/Instancia%20modelo.PNG)
 
 ### Editar grupo de segurança liberando as portas de comunicação para acesso
 - Na pagina do serviço EC2, no menu lateral esquerdo ir em "Rede e Segurança" e clicar em "Security groups".
@@ -93,7 +92,7 @@ Deverá ficar assim:
 ```
 sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-07d84686cb6d691f7.efs.us-east-1.amazonaws.com:/ efs
 ```
-### Acessando sua EC2 através do Putty com chave PPK
+### Acessar EC2 através do Putty com chave PPK
 
 ### Montando sistema de arquivos do EFS
 - Com o acesso via PUTTY, instale o pacote necessário através do comando:
@@ -108,7 +107,7 @@ sudo mkdir /mnt/efs/wordpress
 Obs: Como nossa aplicação utilizará o EFS para salvar estáticos do WordPress já estamos criando uma pasta para o mesmo dentro do diretório, por critério de organização.
 
 Podemos montar o sistema de arquivos de forma manual e de forma automática.
-#### --> Manual 
+#### --> Forma Manual 
 Nessa forma será necessário montar sempre que a maquina for iniciada, utilizando o comando abaixo(o mesmo copiado do sistemas de arquivos anteriormente):
 ```
 sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 fs- fs-07d84686cb6d691f7.efs.us-east-1.amazonaws.com:/ /mnt/efs
@@ -122,7 +121,6 @@ df -hT | grep /mnt/efs
 Este comando lista todos os sistemas de arquivos montados no sistema e filtra apenas as linhas que contêm o diretório /mnt/efs. Se o EFS estiver montado corretamente, você verá uma linha de saída que mostra o sistema de arquivos do EFS e seus detalhes.
 
 #### --> Forma Automática(recomendada)
-
 
 - Para configurar a montagem do sistema de arquivos de forma automática é necessário editar o arquivo "etc/fstab", edite o mesmo através do comando:
 ```
@@ -156,6 +154,8 @@ sudo nano dockerinstall.sh
 ```
 - Coloque o seguinte conteúdo no script:
 ```
+#DOCKER
+
 sudo yum update -y
 
 sudo amazon-linux-extras install docker -y
@@ -167,6 +167,16 @@ sudo usermod -a -G docker $(ec2-user)
 sudo chkconfig docker on
 
 docker version
+
+#DOCKER COMPOSE
+
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+
+sudo chmod +x /usr/local/bin/docker-compose
+
+sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+
+docker-compose --version
 ```
 - Feche o mesmo pressionando "ctrl + x" e "y" para salvar.
 - Esse script realiza as seguintes ações:
@@ -176,6 +186,10 @@ docker version
 4. Adiciona o usuário atual ao grupo "docker" para evitar o uso de "sudo" para comandos do Docker.
 5. Configura o Docker para iniciar automaticamente na inicialização do sistema usando o comando chkconfig.
 6. Verifica a versão do Docker instalada usando o comando docker version.
+7. Baixa a versão mais recente do Docker Compose.
+8. Adiciona permissões de execução ao binário do Docker Compose.
+9. Cria um link simbólico para permitir o acesso global ao Docker Compose.
+10. Verifica a instalação/versão do Docker Compose.
 
 - Depois de criar o arquivo "dockerinstall.sh" é preciso dar permissão de execução ao mesmo usando o comando:
 ```
@@ -270,7 +284,7 @@ Obs: Esta AMI será utilizada como modelo para o AutoScaling criar as demais com
 - Ainda no serviço de EC2 na parte inferior do menu lateral esquerdo vá em "Grupos Auto Scaling".
 - Clique no botão superior direito "criar grupo de Auto Scaling".
   
-  **Etapa 1** - Escolher o modelo ou a configuração de execução
+### **Etapa 1** - Escolher o modelo ou a configuração de execução
 - Insira um nome(autoScalingWordPress) e no canto superior da opção de modelo de execução clique em "Alterar para configuração de execução".
 - Abaixo aparecerá a opção de selecionar uma configuração de execução já existente ou criar uma nova, neste caso vamos criar pois não temos nenhuma.
 - Preencha o campo de nome(ModeloExecWordPress) e selecione a AMI criada anteriormente(imagemWordpressRDS).
@@ -282,11 +296,11 @@ Obs: Esta AMI será utilizada como modelo para o AutoScaling criar as demais com
 - Voltando ao processo de criação do Auto Scaling Group recarregue as opções de configuração de execução e selecione a que acabamos de criar(ModeloExecWordPress).
 - Clique em "próximo" no canto inferior direito.
   
-  **Etapa 2** - Escolher as opções de execução da instancia
+### **Etapa 2** - Escolher as opções de execução da instancia
 - Mantenha a VPC Default já pré-definida e selecione as zonas de disponibilidade em que o grupo do Auto Scaling pode usar na VPC escolhida.(us-east-1c e us-east-1d).
 - Clique em "próximo" no canto inferior direito.
   
-  **Etapa 3** - Configurar opções avançadas
+### **Etapa 3** - Configurar opções avançadas
 - Em balanceamento de carga selecione "anexar a um novo balanceador de carga" assim criaremos o Load Balancer juntamente do Auto Scaling.
 - Em tipo de balanceador de carga selecione "Application Load Balancer".
 - Dê uma nome para o mesmo(LoadBalancerWordPress) e selecione como esquema "Internet-facing". Observe que o novo balanceador de carga será criado usando as mesmas seleções de VPC e zona de disponibilidade que seu grupo do Auto Scaling.
@@ -294,14 +308,14 @@ Obs: Esta AMI será utilizada como modelo para o AutoScaling criar as demais com
 - Abaixo, na parte de Listeners e roteamento é necessário selecionar um grupo de destino, clique na opçaõ para criar um novo, ele automaticamente dá o nome baseado no Load Balancer.
 - Mantenha o restante das configurações pré-definidas e clique em "próximo" no canto inferior direito.
   
-  **Etapa 4** - Configurar políticas de escalabilidade e tamanho do grupo
+### **Etapa 4** - Configurar políticas de escalabilidade e tamanho do grupo
 - Tamanho do grupo, aqui vamos especificar o tamanho do grupo do Auto Scaling alterando a capacidade desejada. Você também pode especificar os limites de capacidade mínima e máxima. Sua capacidade desejada deve estar dentro do intervalo dos limites. Neste caso vamos configurar de acordo com o que a atividade pede(Capacidade desejada: 2, Capacidade mínima: 2, Capacidade máxima: 2).
 - Mantenha o restante das configurações pré-definidas pela aws e clique em "próximo" no canto inferior direito.
   
-  **Etapa 5** - Adicionar Notificações
+### **Etapa 5** - Adicionar Notificações
 - Não vamos nenhuma configuração de notificações no momento, clique em "próximo" novamente.
   
-  **Etapa 6** - Adicionar Etiquetas
+### **Etapa 6** - Adicionar Etiquetas
 - Adicione uma etiqueta "Name" com valor "PBsenac-WordPress" para as novas intancias subirem já nomeadas, facilitando a identificação.
 - Clique em "próximo" no canto inferior direito para ir para a Etapa 7 de Análise.
 - Revise e clique em "Criar grupo de Auto Scaling"
