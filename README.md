@@ -194,9 +194,7 @@ sudo chmod +x dockerinstall.sh
 - Acesse o serviço RDS na sua conta AWS, no canto lateral esquerdo clique em "Banco de dados".
 - Clique no botão laranja no canto superior direito em "Criar banco de dados".
 - Selecione o métode de "criação fácil "e "MySQL" como banco de configuração.
-![tipo de banco RDS](./images/tipo%20de%20banco%20RDS.PNG)
 - Selecione também o "nível gratuito" e preencha as credenciais do banco(não esqueça de gravá-las)
-![credenciaisRDS](./images/credenciaisRDS.PNG)
 - Por último clique em "criar banco de dados" no canto inferior da tela.
 - Aguarde a criação, isso pode levar alguns minutos.
 
@@ -229,17 +227,13 @@ services:
 docker-compose up -d
 ```
 Variáveis utilizadas no arquivo docker-compose:
-- MYSQL_ROOT_PASSWORD: Define a senha do usuário root do MySQL.
-- MYSQL_DATABASE: Especifica o nome do banco de dados(RDS) para o WordPress.
-- MYSQL_USER: Define o nome de usuário do MySQL para o WordPress.
-- MYSQL_PASSWORD: Define a senha do usuário do MySQL para o WordPress.
-- WORDPRESS_DB_HOST: Especifica o nome do serviço do banco de dados (db) para o WordPress se conectar.
-- WORDPRESS_DB_USER: Especifica o nome de usuário do banco de dados para o WordPress.
-- WORDPRESS_DB_PASSWORD: Define a senha do usuário do banco de dados para o WordPress.
-- ORDPRESS_DB_NAME: Especifica o nome do banco de dados do WordPress.
+*WORDPRESS_DB_HOST:* Especifica o nome do serviço do banco de dados (db) para o WordPress se conectar.
+*WORDPRESS_DB_USER:* Especifica o nome de usuário do banco de dados para o WordPress.
+*WORDPRESS_DB_PASSWORD:* Define a senha do usuário do banco de dados para o WordPress.
+*WORDPRESS_DB_NAME:* Especifica o nome do banco de dados do WordPress.
 
---> O WordPress estará acessível em http://localhost:80 (ou em outra porta se você alterou a configuração do arquivo), substitua "localhost" pelo endereço na sua instancia EC2 e lembre-se de que é necessário que a porta 80 esteja liberada nas regras de entrada do grupo de segurança em que a mesma pertence.
-- A linha 6 do script está mapeando o diretório /mnt/efs/wordpress no host para o diretório /var/www/html dentro do contêiner. Isso permite que o Wordpress armazene e acesse seus arquivos na pasta /mnt/efs/wordpress no host.
+> O WordPress estará acessível em http://localhost:80 (ou em outra porta se você alterou a configuração do arquivo), substitua "localhost" pelo endereço na sua instancia EC2 e lembre-se de que é necessário que a porta 80 esteja liberada nas regras de entrada do grupo de segurança em que a mesma pertence.
+> A linha 6 do script está mapeando o diretório /mnt/efs/wordpress no host para o diretório /var/www/html dentro do contêiner. Isso permite que o Wordpress armazene e acesse seus arquivos na pasta /mnt/efs/wordpress no host, ou seja, no sistema de arquivos que criamos anteriormente.
 - Para testar se o container está rodando execute:
 ```
 docker ps
@@ -264,7 +258,7 @@ apt-get update
 ```
 apt-get install -y netcat
 ``` 
-## Criando uma AMI a partir da minha EC2
+## Criar uma AMI a partir da minha EC2
 - Acesse o serviço EC2 da AWS, em instancias selecione a que subimos o container com WordPress e as demais configurações.
 - No canto superior direito clique em "Ações" > "imagem e modelos" > "criar imagem".
 - Insira o nome(imagemWordpressRDS) e descrição para a mesma, observe que ela já pega as configurações pré-definidas da instancia que vamos utilizar como modelo, na qual fizemos todas configurações até agora.
@@ -275,7 +269,8 @@ Obs: Esta AMI será utilizada como modelo para o AutoScaling criar as demais com
 ## Criar Auto Scaling Group
 - Ainda no serviço de EC2 na parte inferior do menu lateral esquerdo vá em "Grupos Auto Scaling".
 - Clique no botão superior direito "criar grupo de Auto Scaling".
-  Etapa 1 - Escolher o modelo ou a configuração de execução
+  
+  **Etapa 1** - Escolher o modelo ou a configuração de execução
 - Insira um nome(autoScalingWordPress) e no canto superior da opção de modelo de execução clique em "Alterar para configuração de execução".
 - Abaixo aparecerá a opção de selecionar uma configuração de execução já existente ou criar uma nova, neste caso vamos criar pois não temos nenhuma.
 - Preencha o campo de nome(ModeloExecWordPress) e selecione a AMI criada anteriormente(imagemWordpressRDS).
@@ -286,22 +281,27 @@ Obs: Esta AMI será utilizada como modelo para o AutoScaling criar as demais com
 - Clique em "criar configuração de execução".
 - Voltando ao processo de criação do Auto Scaling Group recarregue as opções de configuração de execução e selecione a que acabamos de criar(ModeloExecWordPress).
 - Clique em "próximo" no canto inferior direito.
-  Etapa 2 - Escolher as opções de execução da instancia
+  
+  **Etapa 2** - Escolher as opções de execução da instancia
 - Mantenha a VPC Default já pré-definida e selecione as zonas de disponibilidade em que o grupo do Auto Scaling pode usar na VPC escolhida.(us-east-1c e us-east-1d).
 - Clique em "próximo" no canto inferior direito.
-  Etapa 3 - Configurar opções avançadas
+  
+  **Etapa 3** - Configurar opções avançadas
 - Em balanceamento de carga selecione "anexar a um novo balanceador de carga" assim criaremos o Load Balancer juntamente do Auto Scaling.
 - Em tipo de balanceador de carga selecione "Application Load Balancer".
 - Dê uma nome para o mesmo(LoadBalancerWordPress) e selecione como esquema "Internet-facing". Observe que o novo balanceador de carga será criado usando as mesmas seleções de VPC e zona de disponibilidade que seu grupo do Auto Scaling.
 - Em Zonas de disponibilidade e sub-redes já vem pré-selecionadas as duas zonas disponibilizadas anteriormente para o Auto Scaling, nelas que serão criadas as novas instancias.
 - Abaixo, na parte de Listeners e roteamento é necessário selecionar um grupo de destino, clique na opçaõ para criar um novo, ele automaticamente dá o nome baseado no Load Balancer.
 - Mantenha o restante das configurações pré-definidas e clique em "próximo" no canto inferior direito.
-  Etapa 4 - Configurar políticas de escalabilidade e tamanho do grupo
+  
+  **Etapa 4** - Configurar políticas de escalabilidade e tamanho do grupo
 - Tamanho do grupo, aqui vamos especificar o tamanho do grupo do Auto Scaling alterando a capacidade desejada. Você também pode especificar os limites de capacidade mínima e máxima. Sua capacidade desejada deve estar dentro do intervalo dos limites. Neste caso vamos configurar de acordo com o que a atividade pede(Capacidade desejada: 2, Capacidade mínima: 2, Capacidade máxima: 2).
 - Mantenha o restante das configurações pré-definidas pela aws e clique em "próximo" no canto inferior direito.
-  Etapa 5 - Adicionar Notificações
+  
+  **Etapa 5** - Adicionar Notificações
 - Não vamos nenhuma configuração de notificações no momento, clique em "próximo" novamente.
-  Etapa 6 - Adicionar Etiquetas
+  
+  **Etapa 6** - Adicionar Etiquetas
 - Adicione uma etiqueta "Name" com valor "PBsenac-WordPress" para as novas intancias subirem já nomeadas, facilitando a identificação.
 - Clique em "próximo" no canto inferior direito para ir para a Etapa 7 de Análise.
 - Revise e clique em "Criar grupo de Auto Scaling"
