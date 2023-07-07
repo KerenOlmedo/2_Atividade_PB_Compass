@@ -211,21 +211,18 @@ sudo nano docker-compose.yml
 ```
 version: '3'
 services:
-
   wordpress:
     image: wordpress:latest
     volumes:
-      - wp_data:/var/www/html
+      - /mnt/efs/wordpress:/var/www/html
     restart: always
     ports:
-      - 8080:80
+      - 80:80
     environment:
-      WORDPRESS_DB_HOST: databasepb.czuctyrea21y.us-east-1.rds.amazonaws.com
+      WORDPRESS_DB_HOST: dbwordpress.czuctyrea21y.us-east-1.rds.amazonaws.com
       WORDPRESS_DB_USER: adminPB
       WORDPRESS_DB_PASSWORD: estagioCompass
-      WORDPRESS_DB_NAME: databasepb
-volumes:
-  wp_data:
+      WORDPRESS_DB_NAME: dbwordpress
 ```
 - Para executar o arquivo e subir o container com Wordpress conectado ao banco MySQL execute o comando:
 ```
@@ -241,7 +238,13 @@ Variáveis utilizadas no arquivo docker-compose:
 - WORDPRESS_DB_PASSWORD: Define a senha do usuário do banco de dados para o WordPress.
 - ORDPRESS_DB_NAME: Especifica o nome do banco de dados do WordPress.
 
-- O WordPress estará acessível em http://localhost:8080 (ou em outra porta se você alterou a configuração do arquivo), substitua "localhost" pelo endereço na sua instancia EC2 e lembre-se de que é necessário que a porta 8080 esteja liberada nas regras de entrada do grupo de segurança em que a mesma pertence.
+--> O WordPress estará acessível em http://localhost:80 (ou em outra porta se você alterou a configuração do arquivo), substitua "localhost" pelo endereço na sua instancia EC2 e lembre-se de que é necessário que a porta 80 esteja liberada nas regras de entrada do grupo de segurança em que a mesma pertence.
+- A linha 6 do script está mapeando o diretório /mnt/efs/wordpress no host para o diretório /var/www/html dentro do contêiner. Isso permite que o Wordpress armazene e acesse seus arquivos na pasta /mnt/efs/wordpress no host.
+- Para testar se o container está rodando execute:
+```
+docker ps
+```
+Este comando listará os containers em execução. Outra forma de testar se a aplicação está rodando é acessar "http://<IP_da_sua_instancia>" no navegador, logo deverá carregar a página de instalação do WordPress.
 
 ## Testando a conexão com o banco MySQL (RDS)
 - Acesse o container criado anteriormente através do seu ID e com o comando:
@@ -252,15 +255,56 @@ docker exec -it <ID_do_contêiner_wordpress> /bin/bash
 ```
 nc -vz <nome_do_host_do_banco_de_dados> 3306
 ```
- Substitua <nome_do_host_do_banco_de_dados> pelo endpoint do seu RDS lá da AWS. O comando deve retornar algo como esta mensagem de secessed:
-  FOTO
+ Substitua <nome_do_host_do_banco_de_dados> pelo endpoint do seu RDS lá da AWS. O comando deve retornar algo como esta mensagem de sucesso: " "
+  
 - Caso dê algum erro no comando é porque o pacote netcat não vem instalado como padrão do container. Execute os dois comandos abaixo e tente novamente.
 ```
 apt-get update
 ```
 ```
 apt-get install -y netcat
-```
+``` 
+## Criando uma AMI a partir da minha EC2
+- Acesse o serviço EC2 da AWS, em instancias selecione a que subimos o container com WordPress e as demais configurações.
+- No canto superior direito clique em "Ações" > "imagem e modelos" > "criar imagem".
+- Insira o nome(imagemWordpressRDS) e descrição para a mesma, observe que ela já pega as configurações pré-definidas da instancia que vamos utilizar como modelo, na qual fizemos todas configurações até agora.
+- Mantenha as opções padrão e clique em "criar imagem" para concluir.
+
+Obs: Esta AMI será utilizada como modelo para o AutoScaling criar as demais com as mesmas configurações, logo iremos aplicá-lo juntamente do LoadBalancer.
+
+## Criar Auto Scaling Group
+- Ainda no serviço de EC2 na parte inferior do menu lateral esquerdo vá em "Grupos Auto Scaling".
+- Clique no botão superior direito "criar grupo de Auto Scaling".
+  Etapa 1 - Escolher o modelo ou a configuração de execução
+- Insira um nome(autoScalingWordPress) e no canto superior da opção de modelo de execução clique em "Alterar para configuração de execução".
+- Abaixo aparecerá a opção de selecionar uma configuração de execução já existente ou criar uma nova, neste caso vamos criar pois não temos nenhuma.
+- Preencha o campo de nome(ModeloExecWordPress) e selecione a AMI criada anteriormente(imagemWordpressRDS).
+- Escolha o tipo de instancia "t2.micro(1 vCPUs, 1 GiB, Somente EBS)".
+- Mantenha as demais configurações pré-definidas, em Grupos de segurança selecione o que foi criado e anexado anteriormente a instancia.
+- Escolha um par de chaves, o mesmo anexado a instancia ao criá-la.
+- Marque a caixinha: "Confirmo que tenho acesso ao arquivo de chave privada selecionado (chavePPKatividadeDocker.pem) e que, sem esse arquivo, não poderei fazer login na minha instância".
+- Clique em "criar configuração de execução".
+- Voltando ao processo de criação do Auto Scaling Group recarregue as opções de configuração de execução e selecione a que acabamos de criar(ModeloExecWordPress).
+- Clique em "próximo" no canto inferior direito.
+  Etapa 2 - Escolher as opções de execução da instancia
+- Mantenha a VPC Default já pré-definida e selecione as zonas de disponibilidade em que o grupo do Auto Scaling pode usar na VPC escolhida.(us-east-1c e us-east-1d).
+- Clique em "próximo" no canto inferior direito.
+  Etapa 3 - Configurar opções avançadas
+- Em balanceamento de carga selecione "anexar a um novo balanceador de carga" assim criaremos o Load Balancer juntamente do Auto Scaling.
+- Em tipo de balanceador de carga selecione "Application Load Balancer".
+- Dê uma nome para o mesmo(LoadBalancerWordPress) e selecione como esquema "Internet-facing". Observe que o novo balanceador de carga será criado usando as mesmas seleções de VPC e zona de disponibilidade que seu grupo do Auto Scaling.
+- Em Zonas de disponibilidade e sub-redes já vem pré-selecionadas as duas zonas disponibilizadas anteriormente para o Auto Scaling, nelas que serão criadas as novas instancias.
+- Abaixo, na parte de Listeners e roteamento é necessário selecionar um grupo de destino, clique na opçaõ para criar um novo, ele automaticamente dá o nome baseado no Load Balancer.
+- Mantenha o restante das configurações pré-definidas e clique em "próximo" no canto inferior direito.
+  Etapa 4 - Configurar políticas de escalabilidade e tamanho do grupo
+- Tamanho do grupo, aqui vamos especificar o tamanho do grupo do Auto Scaling alterando a capacidade desejada. Você também pode especificar os limites de capacidade mínima e máxima. Sua capacidade desejada deve estar dentro do intervalo dos limites. Neste caso vamos configurar de acordo com o que a atividade pede(Capacidade desejada: 2, Capacidade mínima: 2, Capacidade máxima: 2).
+- Mantenha o restante das configurações pré-definidas pela aws e clique em "próximo" no canto inferior direito.
+  Etapa 5 - Adicionar Notificações
+- Não vamos nenhuma configuração de notificações no momento, clique em "próximo" novamente.
+  Etapa 6 - Adicionar Etiquetas
+- Adicione uma etiqueta "Name" com valor "PBsenac-WordPress" para as novas intancias subirem já nomeadas, facilitando a identificação.
+- Clique em "próximo" no canto inferior direito para ir para a Etapa 7 de Análise.
+- Revise e clique em "Criar grupo de Auto Scaling"
 <br>
 ## 📎 Referências
 [MEditor.md](https://pandao.github.io/editor.md/index.html)<br>
