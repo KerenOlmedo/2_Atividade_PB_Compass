@@ -1,5 +1,6 @@
 <h1 align="center"> 2_Atividade_PB_Compass </h1>
 <h3 align="center"> Prática Docker/AWS utilizando RDS, EFS, AutoScaling e LoadBalancer</h3>
+<h6 align="center">Este repositório contém a segunda atividade avaliativa do programa de estágio da Compass.UOL. A execução da atividade proposta é descrita na documentação abaixo e envolveu conhecimentos de Amazon Web Services (AWS), Linux e Docker.</h6>
 
 
 <p align="center">
@@ -14,6 +15,10 @@
 ## 🚀 Objetivo
 
 Contruir e documentar o processo de criação e configuração da seguinte arquitetura:
+<p align="center">
+  <img src="https://i.ibb.co/8PRmxdW/arquitetura.png"/>
+</p>
+
 
 <br>
 
@@ -41,22 +46,82 @@ Contruir e documentar o processo de criação e configuração da seguinte arqui
 
 ## 📝 Instruções de Execução
 ### >> AWS
-### Subir instância EC2 com par de chaves PPK
+### Subir instância EC2 
 - Acessar a AWS na pagina do serviço EC2, e clicar em "instancias" no menu lateral esquerdo.
 - Clicar em "executar instâncias" na parte superior esquerda da tela.
 - Abaixo do campo de inserir nome clicar em "adicionar mais tags".
 - Crie e insira o valor para as chaves: Name, Project e CostCenter, selecionando "intancias", "volume" e "interface de rede" como tipos de recurso e adicionando os valores de sua preferencia.
+<p align="center">
+  <img src="https://i.ibb.co/RTtkcTf/Instancia-modelo.png"/>
+</p>
+
 - Abaixo selecione também a AMI Amazon Linux 2(HVM) SSD Volume Type.
 - Selecionar como tipo de intância a família t3.small.
 - Em Par de chaves login clique em "criar novo par de chaves".
 - Insira o nome do par de chaves, tipo RSA, formato .ppk e clique em "criar par de chaves".
+  <p align="center">
+  <img src="https://i.ibb.co/qNY3SVY/criando-par-de-chaves.png"/>
+</p>
 - Em configurações de rede, selecione criar grupo de segurança e permitir todos tráfegos(SSH).
 - Configure o armazenamento com 16GiB, volume raiz gp2.
-- Clique em executar instância.
-- Selecione também o "nível gratuito" e preencha as credenciais do banco como na imagem(não esqueça de gravá-las).
+- No final da configuração expanda o link "configurações avançadas"
 <p align="center">
-  <img src="https://i.ibb.co/v3G0Sdt/Instancia-modelo.png"/>
+  <img src="https://i.ibb.co/mBQtgkx/detalhes-avan-ados-criando-instaqncia.png"/>
 </p>
+
+- Em dados do usuário cole o script abaixo(lembre-se de substituir o valor das variáveis de ambiente pelo valor das váriáveis que você criou no RDS e o ID do seu EFS):
+```
+#!/bin/bash
+yum update -y
+yum install -y docker
+service docker start
+chkconfig docker on
+curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+usermod -aG docker ec2-user
+yum install -y git
+mkdir /mnt/efs
+mkdir /mnt/efs/wordpress
+mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 fs-XXXXXXXXXXXX.amazonaws.com:/ /mnt/efs
+
+export WORDPRESS_DB_HOST="XXXXX"
+export WORDPRESS_DB_USER="XXXXX"
+export WORDPRESS_DB_PASSWORD="XXXXX" 
+export WORDPRESS_DB_NAME="XXXXX"
+
+cd /home/ec2-user
+git clone https://github.com/KerenOlmedo/2_Atividade_PB_Compass.git
+cd 2_Atividade_PB_Compass
+docker-compose up -d
+```
+- Deverá ficar semelhante como na imagem abaixo.
+<p align="center">
+  <img src="https://i.ibb.co/hyZ9Gcc/script-start-instance.png"/>
+</p>
+
+- Este script atualiza o sistema, instala o Docker e o Docker Compose, configura um ambiente WordPress, clona um repositório Git e inicia os contêineres usando o Docker Compose, abaixo a explicação de cada linha de comando:
+1. Indica o interpretador a ser usado para executar o script, neste caso, o Bash.
+2. Atualiza todos os pacotes do sistema operacional usando o gerenciador de pacotes yum e a opção -y responde automaticamente "sim" para todas as solicitações de confirmação.
+3. Instala o Docker usando o yum e a opção -y responde automaticamente "sim" para todas as solicitações de confirmação.
+4. Inicia o serviço do Docker.
+5. Configura o serviço do Docker para iniciar automaticamente na inicialização do sistema.
+6. Faz o download do Docker Compose da versão especificada no URL e o salva no diretório /usr/local/bin/docker-compose.
+7. Concede permissão de execução ao arquivo do Docker Compose.
+8. Adiciona o usuário ec2-user ao grupo docker, permitindo que o usuário execute comandos Docker sem a necessidade de privilégios de root.
+9. Instala o Git usando o yum e a opção -y responde automaticamente "sim" para todas as solicitações de confirmação.
+10. Cria o diretório /mnt/efs.
+11. Cria o diretório /mnt/efs/wordpress.
+12. Monta o sistema de arquivos NFS especificado em /mnt/efs.
+13. Define a variável de ambiente WORDPRESS_DB_HOST com o valor fornecido.
+14. Define a variável de ambiente WORDPRESS_DB_USER com o valor fornecido.
+15. Define a variável de ambiente WORDPRESS_DB_PASSWORD com o valor fornecido.
+16. Define a variável de ambiente WORDPRESS_DB_NAME com o valor fornecido.
+17. Navega para o diretório /home/ec2-user.
+18. Clona o repositório Git especificado no diretório atual.
+19. Navega para o diretório clonado.
+20. Inicia os contêineres especificados no arquivo docker-compose.yml no modo detached (em segundo plano).
+
+- Clique em executar instância e aguarde, isso pode levar alguns minutos por conta das configurações inseridas no script de start instance.
 
 ### Editar grupo de segurança liberando as portas de comunicação para acesso
 - Na pagina do serviço EC2, no menu lateral esquerdo ir em "Rede e Segurança" e clicar em "Security groups".
