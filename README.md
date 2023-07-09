@@ -53,6 +53,10 @@ Contruir e documentar o processo de criação e configuração da seguinte arqui
 - Em configurações de rede, selecione criar grupo de segurança e permitir todos tráfegos(SSH).
 - Configure o armazenamento com 16GiB, volume raiz gp2.
 - Clique em executar instância.
+- Selecione também o "nível gratuito" e preencha as credenciais do banco como na imagem(não esqueça de gravá-las).
+<p align="center">
+  <img src="https://i.ibb.co/v3G0Sdt/Instancia-modelo.png"/>
+</p>
 
 ### Editar grupo de segurança liberando as portas de comunicação para acesso
 - Na pagina do serviço EC2, no menu lateral esquerdo ir em "Rede e Segurança" e clicar em "Security groups".
@@ -110,7 +114,7 @@ Podemos montar o sistema de arquivos de forma manual e de forma automática.
 #### --> Forma Manual 
 Nessa forma será necessário montar sempre que a maquina for iniciada, utilizando o comando abaixo(o mesmo copiado do sistemas de arquivos anteriormente):
 ```
-sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 fs- fs-07d84686cb6d691f7.efs.us-east-1.amazonaws.com:/ /mnt/efs
+sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 fs-07d84686cb6d691f7.efs.us-east-1.amazonaws.com:/ /mnt/efs
 ```
 Certifique-se de substituir "/mnt/efs" pelo caminho real do seu diretório e "fs-07d84686cb6d691f7.efs.us-east-1.amazonaws.com" pelo ID e região do seu sistema de arquivos.
 
@@ -208,9 +212,16 @@ sudo chmod +x dockerinstall.sh
 - Acesse o serviço RDS na sua conta AWS, no canto lateral esquerdo clique em "Banco de dados".
 - Clique no botão laranja no canto superior direito em "Criar banco de dados".
 - Selecione o métode de "criação fácil "e "MySQL" como banco de configuração.
-- Selecione também o "nível gratuito" e preencha as credenciais do banco(não esqueça de gravá-las)
-- Por último clique em "criar banco de dados" no canto inferior da tela.
-- Aguarde a criação, isso pode levar alguns minutos.
+<p align="center">
+  <img src="https://i.ibb.co/LpTs8ss/tipo-de-banco-RDS.png"/>
+</p>
+
+- Selecione também o "nível gratuito" e preencha as credenciais do banco como na imagem(não esqueça de gravá-las).
+<p align="center">
+  <img src="https://i.ibb.co/Zft94wt/credenciais-RDS.png"/>
+</p>
+
+- Por último clique em "criar banco de dados" no canto inferior da tela e aguarde a criação, isso pode levar alguns minutos.
 
 ### Criando um arquivo Docker-compose
 
@@ -231,10 +242,10 @@ services:
     ports:
       - 80:80
     environment:
-      WORDPRESS_DB_HOST: dbwordpress.czuctyrea21y.us-east-1.rds.amazonaws.com
-      WORDPRESS_DB_USER: adminPB
-      WORDPRESS_DB_PASSWORD: estagioCompass
-      WORDPRESS_DB_NAME: dbwordpress
+      WORDPRESS_DB_HOST: 
+      WORDPRESS_DB_USER: 
+      WORDPRESS_DB_PASSWORD: 
+      WORDPRESS_DB_NAME: 
 ```
 - Para executar o arquivo e subir o container com Wordpress conectado ao banco MySQL execute o comando:
 ```
