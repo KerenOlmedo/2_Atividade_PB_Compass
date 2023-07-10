@@ -100,6 +100,11 @@ sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,ret
 </p>
 
 - Por último clique em "criar banco de dados" no canto inferior da tela e aguarde a criação, isso pode levar alguns minutos.
+- Depois de criado você poderá editá-lo. Faça isso para modificar a configuração de acesso do mesmo. Clique em modificar.
+- Vá até a "configuração adicional" e selecione "não acessivel ao público".
+<p align="center"><img src="https://i.ibb.co/gWZ049x/acesso-RDS.png"/></p>
+
+- Clique em continuar e confirme para alterar imediatamente.
 
 ### Executando instancia EC2 
 - Acessar a AWS na pagina do serviço EC2, e clicar em "instancias" no menu lateral esquerdo.
@@ -377,3 +382,4 @@ Agora o site está mais usual, facilitando o acesso para clientes, estes acessam
 [MEditor.md](https://pandao.github.io/editor.md/index.html)<br>
 [Servidor de Arquivos NFS](https://debian-handbook.info/browse/pt-BR/stable/sect.nfs-file-server.html)<br>
 [AWS Elastic File System](https://aws.amazon.com/pt/efs/)
+[AWS RDS](https://aws.amazon.com/pt/rds/)
