@@ -248,11 +248,14 @@ apt-get install -y netcat
 ``` 
 - Execute "exit" para sair do terminal do container e voltar para o da sua instancia.
 
+#### Testando montagem do EFS e configuração dos estáticos do Wordpress no mesmo
+
 Para testar se o EFS foi criado corretamente e está salvando os arquivos estáticos do WordPress acesse o diretório e montagem:
 ```
 cd /mnt/efs/wordpress
 ```
 - Estando dentro da pasta execute o comando "ls" para listar o contéudo da mesma. O correto é retornar os arquivos de configuração do WordPress como na imagem abaixo.
+
 <p align="center">
   <img src="https://i.ibb.co/183nSWW/diretorio-efs-wordpress.png"/>
 </p>
@@ -266,12 +269,17 @@ Os logs de inicialização são armazenados nesses arquivos apenas se a instânc
 ## Criar uma AMI a partir da minha EC2
 - Acesse o serviço EC2 da AWS, em instancias selecione a que subimos o container com WordPress e as demais configurações.
 - No canto superior direito clique em "Ações" > "imagem e modelos" > "criar imagem".
-- Insira o nome(imagemWordpressRDS) e descrição para a mesma, observe que ela já pega as configurações pré-definidas da instancia que vamos utilizar como modelo, na qual fizemos todas configurações até agora.
+
+<p align="center">
+  <img src="https://i.ibb.co/ZVh23pQ/criando-AMI-da-instancia.png"/>
+</p>
+
+- Insira o nome(AMImodeloWordpress) e descrição para a mesma, observe que ela já pega as configurações pré-definidas da instancia que vamos utilizar como modelo, na qual fizemos todas configurações até agora.
 - Mantenha as opções padrão e clique em "criar imagem" para concluir.
 
 Obs: Esta AMI será utilizada como modelo para o AutoScaling criar as demais com as mesmas configurações, logo iremos aplicá-lo juntamente do LoadBalancer.
 
-## Criar Auto Scaling Group
+## Criar Auto Scaling Group / Load Blancer
 - Ainda no serviço de EC2 na parte inferior do menu lateral esquerdo vá em "Grupos Auto Scaling".
 - Clique no botão superior direito "criar grupo de Auto Scaling".
   
@@ -279,17 +287,28 @@ Obs: Esta AMI será utilizada como modelo para o AutoScaling criar as demais com
 - Insira um nome(autoScalingWordPress) e no canto superior da opção de modelo de execução clique em "Alterar para configuração de execução".
 - Abaixo aparecerá a opção de selecionar uma configuração de execução já existente ou criar uma nova, neste caso vamos criar pois não temos nenhuma.
 - Preencha o campo de nome(ModeloExecWordPress) e selecione a AMI criada anteriormente(imagemWordpressRDS).
+<p align="center"><img src="https://i.ibb.co/PQFLNYY/configura-o-de-execu-o-1.png"/></p>
+
 - Escolha o tipo de instancia "t2.micro(1 vCPUs, 1 GiB, Somente EBS)".
+<p align="center"><img src="https://i.ibb.co/rmM0531/configura-o-de-execu-o-2-tipo-de-instancia.png"/></p>
+
 - Mantenha as demais configurações pré-definidas, em Grupos de segurança selecione o que foi criado e anexado anteriormente a instancia.
 - Escolha um par de chaves, o mesmo anexado a instancia ao criá-la.
+<p align="center"><img src="https://i.ibb.co/Tv7kTM6/configura-o-de-execu-o-4-chave-de-seguran-a.png"/></p>
+
 - Marque a caixinha: "Confirmo que tenho acesso ao arquivo de chave privada selecionado (chavePPKatividadeDocker.pem) e que, sem esse arquivo, não poderei fazer login na minha instância".
 - Clique em "criar configuração de execução".
 - Voltando ao processo de criação do Auto Scaling Group recarregue as opções de configuração de execução e selecione a que acabamos de criar(ModeloExecWordPress).
+Resumo da etapa:
+<p align="center"><img src="https://i.ibb.co/PDmJLVc/etapa-1-autoscaling.png"/></p>
+
 - Clique em "próximo" no canto inferior direito.
   
 ### **Etapa 2** - Escolher as opções de execução da instancia
 - Mantenha a VPC Default já pré-definida e selecione as zonas de disponibilidade em que o grupo do Auto Scaling pode usar na VPC escolhida.(us-east-1c e us-east-1d).
 - Clique em "próximo" no canto inferior direito.
+Resumo da etapa:
+<p align="center"><img src="https://i.ibb.co/Y0MFMDG/etapa-2-autoscaling.png"/></p>
   
 ### **Etapa 3** - Configurar opções avançadas
 - Em balanceamento de carga selecione "anexar a um novo balanceador de carga" assim criaremos o Load Balancer juntamente do Auto Scaling.
@@ -298,17 +317,24 @@ Obs: Esta AMI será utilizada como modelo para o AutoScaling criar as demais com
 - Em Zonas de disponibilidade e sub-redes já vem pré-selecionadas as duas zonas disponibilizadas anteriormente para o Auto Scaling, nelas que serão criadas as novas instancias.
 - Abaixo, na parte de Listeners e roteamento é necessário selecionar um grupo de destino, clique na opçaõ para criar um novo, ele automaticamente dá o nome baseado no Load Balancer.
 - Mantenha o restante das configurações pré-definidas e clique em "próximo" no canto inferior direito.
+Resumo Load Balancer:
+<p align="center"><img src="https://i.ibb.co/0qXd3y5/loadbalaner-resumo.png"/></p>
   
 ### **Etapa 4** - Configurar políticas de escalabilidade e tamanho do grupo
 - Tamanho do grupo, aqui vamos especificar o tamanho do grupo do Auto Scaling alterando a capacidade desejada. Você também pode especificar os limites de capacidade mínima e máxima. Sua capacidade desejada deve estar dentro do intervalo dos limites. Neste caso vamos configurar de acordo com o que a atividade pede(Capacidade desejada: 2, Capacidade mínima: 2, Capacidade máxima: 2).
 - Mantenha o restante das configurações pré-definidas pela aws e clique em "próximo" no canto inferior direito.
-  
+Resumo da etapa:
+  <p align="center"><img src="https://i.ibb.co/6mb7fwz/etapa-4-autoscaling.png"/></p>
+
 ### **Etapa 5** - Adicionar Notificações
 - Não vamos nenhuma configuração de notificações no momento, clique em "próximo" novamente.
   
 ### **Etapa 6** - Adicionar Etiquetas
 - Adicione uma etiqueta "Name" com valor "PBsenac-WordPress" para as novas intancias subirem já nomeadas, facilitando a identificação.
 - Clique em "próximo" no canto inferior direito para ir para a Etapa 7 de Análise.
+Resumo da etapa 5 e 6:
+  <p align="center"><img src="https://i.ibb.co/fM5JNfm/etapa-5-e-6-sutoscaling.png"/></p>
+
 - Revise e clique em "Criar grupo de Auto Scaling"
 <br>
 ## 📎 Referências
