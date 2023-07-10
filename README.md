@@ -182,14 +182,14 @@ Explicação detalhada das linhas de comando:
 
 - Clique em executar instância e aguarde, isso pode levar alguns minutos por conta das configurações inseridas no script de start instance.
 
-## Testando configurações feitas via script(opcional)
+### Testando configurações feitas via script(opcional)
 
 Se todas configurações foram bem sucedidas o WordPress estará acessível em http://localhost:80 (ou em outra porta dependendo da configuração feita no arquivo docker-compose), substitua "localhost" pelo endereço na sua instancia EC2 e lembre-se de que é necessário que a porta 80 esteja liberada nas regras de entrada do grupo de segurança em que a mesma pertence. Deverá carregar esta pagina de instalação.
 <p align="center">
   <img src="https://i.ibb.co/ygxfYc0/pagina-instala-o-wordpress.png"/>
 </p>
 
-#### Testando se o container WordPress está em execução
+### Testando se o container WordPress está em execução
 
 Caso isso não aconteça, acesse o terminal da sua instancia pela AWS ou via PUTTY.
 - Para testar se o container está rodando execute o comando:
@@ -214,7 +214,7 @@ Na imagem acima foram destacados apenas dois exemplos, essas mensagens de log s�
 
 **"No 'wp-config.php' found in /var/www/html, but 'WORDPRESS_...' variables supplied; copying 'wp-config-docker.php' (WORDPRESS_DB_HOST WORDPRESS_DB_NAME WORDPRESS_DB_PASSWORD WORDPRESS_DB_USER)":** Essa mensagem indica que não foi encontrado um arquivo 'wp-config.php' no diretório /var/www/html. No entanto, o contêiner recebeu variáveis de ambiente com prefixo 'WORDPRESS_' que fornecem as informações necessárias para a configuração do banco de dados. Em vez do arquivo 'wp-config.php', o contêiner está copiando um arquivo de configuração alternativo chamado 'wp-config-docker.php', que será usado para configurar a conexão com o banco de dados com base nas variáveis de ambiente fornecidas.
 
-#### Testando a instalação do Docker e Docker Compose
+### Testando a instalação do Docker e Docker Compose
 
 - Caso o container não esteja rodando, execute os comandos abaixo para retornar a versão do Docker e docker-compose, assim podemos nos certidicadas de que foram instalados caso retorne a versão dos mesmos.
 ```
@@ -224,7 +224,7 @@ docker --version
 docker-compose --version
 ```
 
-#### Testando a conexão com o banco MySQL (RDS)
+### Testando a conexão com o banco MySQL (RDS)
 
 - Acesse o container criado anteriormente através do seu ID e com o comando:
 ```
@@ -248,7 +248,7 @@ apt-get install -y netcat
 ``` 
 - Execute "exit" para sair do terminal do container e voltar para o da sua instancia.
 
-#### Testando montagem do EFS e configuração dos estáticos do Wordpress no mesmo
+### Testando montagem do EFS e configuração dos estáticos do Wordpress no mesmo
 
 Para testar se o EFS foi criado corretamente e está salvando os arquivos estáticos do WordPress acesse o diretório e montagem:
 ```
@@ -278,6 +278,26 @@ Os logs de inicialização são armazenados nesses arquivos apenas se a instânc
 - Mantenha as opções padrão e clique em "criar imagem" para concluir.
 
 Obs: Esta AMI será utilizada como modelo para o AutoScaling criar as demais com as mesmas configurações, logo iremos aplicá-lo juntamente do LoadBalancer.
+
+## Instalação WordPress/Criação de Usuário
+
+- Através do IP público da sua intancia no navegador acesse a página de instalação WordPress, selecione a linguagem e clique em "continue".
+<p align="center"><img src="https://i.ibb.co/ygxfYc0/pagina-instala-o-wordpress.png"/></p>
+
+- Preencha os campos com as credenciais da sua preferência e clique em "Instalar WordPress".
+<p align="center"><img src="https://i.ibb.co/z6nPSX4/2.png"/></p>
+
+- Clique em acessar.
+<p align="center"><img src="https://i.ibb.co/3YLrnTq/3.png"/></p>
+
+- Insira seu login e senha e clique em "acessar".
+<p align="center"><img src="https://i.ibb.co/qDm2wXY/4.png"/></p>
+
+- Deverá carregar a seguinte página de configuração do WordPress. Aqui você pode personalizar seu site e fazer as configurações de acesso do mesmo.
+<p align="center"><img src="https://i.ibb.co/0B0bMms/5.png"/></p>
+
+- Vá em "Configuraçõea" no menu lateral esquerdo. Aqui você pode configurar a URL para seu site e home. Cole nos dois campos e endereço DNS do seu LoadBalancer. Desta forma poderemos acessar o site pelo Load Blancer e o mesmo direciona-rá o acesso para determinada instancia(executada pelo Auto Scaling).
+<p align="center"><img src=""/></p>
 
 ## Criar Auto Scaling Group / Load Blancer
 - Ainda no serviço de EC2 na parte inferior do menu lateral esquerdo vá em "Grupos Auto Scaling".
@@ -336,8 +356,24 @@ Resumo da etapa 5 e 6:
   <p align="center"><img src="https://i.ibb.co/fM5JNfm/etapa-5-e-6-sutoscaling.png"/></p>
 
 - Revise e clique em "Criar grupo de Auto Scaling"
+
+## Atribuindo um Domínio ao DNS do Load Balancer
+
+
+- Através do site NoIP é possível pegar um domínio gratuito para nossa aplicação, desta forma quando um cliente acessar o site pelo domínio terá acesso apenas ao site e não ao endereço do Load Balancer. Com esta configuração o acesso a página de login do WordPress ficará protegido e só você conseguirá acessar(via DNS do LoadBalancer + "wp-login.php").
+- Será necessário criar uma conta no site primeiramente.
+[NoIP](https://my.noip.com/dynamic-dns)
+- Pesquise um dominio com o nome que deseja e ele retornará a lista com os disponiveis para o nome pesquisado, copie o que for mais adequado para você.
+- Depois clique em "criar hostname".
+- Selecione o dominio escolhido anteriormente, depois o protocolo "http://" e cole o DNS do seu Load Balancer no campo "URL / IP", confirme para criar.
+Isso pode levar uns minutos para dar tempo do endereço se propagar, aguarde.
+- Acesse o domínio criado anteriormente no navegador para testar o acesso ao site.
+  <p align="center"><img src="https://i.ibb.co/k3GMn7X/teste-dominio-2.png"/></p>
+
+Agora o site está mais usual, facilitando o acesso para clientes, estes acessam o mesmo pelo domínio atribuído e quando você quiser gerenciar e personalizar seu site é só utilizar DNS do seu LoadBalacer + wp-login.php(é a página de login padrão do WordPress, que é usada para acessar a área de administração do site). É importante proteger a página de login do WordPress e manter suas credenciais de administrador seguras para evitar acesso não autorizado à área de administração do seu site.
 <br>
 ## 📎 Referências
+
 [MEditor.md](https://pandao.github.io/editor.md/index.html)<br>
 [Servidor de Arquivos NFS](https://debian-handbook.info/browse/pt-BR/stable/sect.nfs-file-server.html)<br>
 [AWS Elastic File System](https://aws.amazon.com/pt/efs/)
