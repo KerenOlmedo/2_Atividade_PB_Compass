@@ -62,6 +62,30 @@ Contruir e documentar o processo de criação e configuração da seguinte arqui
 
 - Por fim clique em "Criar grupo de segurança".
 
+### Criando grupo de segurança para o servidor de arquivos EFS
+- Navegue no serviço EC2 da AWS em Security groups.
+- Clique em criar grupo de segurança, este será utilizado para segurança de rede exclusiva  do EFS.
+- Depois de atribuir um nome(EFS-acesso), adicione como regra de entrada ao NFS com origem para o grupo de segurança criado e anexado anteriormente junto da instancia.
+Deverá ficar assim:
+    Tipo | Protocolo | Intervalo de portas | Origem | Descrição
+    ---|---|---|---|---
+    NFS | TCP | 2049 | sg-0e0fe595c74f876a6 | NFS
+
+- Clique em criar grupo de segurança para finalizar.
+
+### Criando Servidor de arquivos (Elastic File System)
+- Ainda no ambiente da AWS, navegue até o serviço de EFS.
+- No menu lateral esquerdo clique em Sistemas de arquivos e logo após em "Criar sistema de arquivos" a direita.
+- Adicione um nome para o mesmo(EFSatividadePB) e selecione a opção "personalizar".
+- Marque a opção "One Zone" e selecione a zona de disponibilidade na qual criou sua instancia.
+- Mantenha o restante das opções pré-definidas, só altere o grupo de segurança para o "EFS-acesso" criado anteriormente.
+- Revise e clique em criar para finalizar.
+- Abra o sistema de arquivos criado e clique no botão "anexar" a esquerda para visualizar as opções de montagem(IP ou DNS).
+- A AWS já te dá os comandos definidos de acordo com as opções escolhidas, nesse caso vamos utilizar a montagem via DNS usando o cliente do NFS, copie o mesmo. Como no exemplo abaixo:
+```
+sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-07d84686cb6d691f7.efs.us-east-1.amazonaws.com:/ efs
+```
+
 ## Criando RDS(MySQL)
 - Acesse o serviço RDS na sua conta AWS, no canto lateral esquerdo clique em "Banco de dados".
 - Clique no botão laranja no canto superior direito em "Criar banco de dados".
@@ -158,40 +182,50 @@ Explicação detalhada das linhas de comando:
 
 - Clique em executar instância e aguarde, isso pode levar alguns minutos por conta das configurações inseridas no script de start instance.
 
-### Criando grupo de segurança para o servidor de arquivos EFS
-- Navegue no serviço EC2 da AWS em Security groups.
-- Clique em criar grupo de segurança, este será utilizado para segurança de rede exclusiva  do EFS.
-- Depois de atribuir um nome(EFS-acesso), adicione como regra de entrada ao NFS com origem para o grupo de segurança criado e anexado anteriormente junto da instancia.
-Deverá ficar assim:
-    Tipo | Protocolo | Intervalo de portas | Origem | Descrição
-    ---|---|---|---|---
-    NFS | TCP | 2049 | sg-0e0fe595c74f876a6 | NFS
+## Testando configurações feitas via script(opcional)
 
-- Clique em criar grupo de segurança para finalizar.
+Se todas configurações foram bem sucedidas o WordPress estará acessível em http://localhost:80 (ou em outra porta dependendo da configuração feita no arquivo docker-compose), substitua "localhost" pelo endereço na sua instancia EC2 e lembre-se de que é necessário que a porta 80 esteja liberada nas regras de entrada do grupo de segurança em que a mesma pertence. Deverá carregar esta pagina de instalação.
+<p align="center">
+  <img src="https://i.ibb.co/ygxfYc0/pagina-instala-o-wordpress.png"/>
+</p>
 
-### Criando Servidor de arquivos (Elastic File System)
-- Ainda no ambiente da AWS, navegue até o serviço de EFS.
-- No menu lateral esquerdo clique em Sistemas de arquivos e logo após em "Criar sistema de arquivos" a direita.
-- Adicione um nome para o mesmo(EFSatividadePB) e selecione a opção "personalizar".
-- Marque a opção "One Zone" e selecione a zona de disponibilidade na qual criou sua instancia.
-- Mantenha o restante das opções pré-definidas, só altere o grupo de segurança para o "EFS-acesso" criado anteriormente.
-- Revise e clique em criar para finalizar.
-- Abra o sistema de arquivos criado e clique no botão "anexar" a esquerda para visualizar as opções de montagem(IP ou DNS).
-- A AWS já te dá os comandos definidos de acordo com as opções escolhidas, nesse caso vamos utilizar a montagem via DNS usando o cliente do NFS, copie o mesmo. Como no exemplo abaixo:
-```
-sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-07d84686cb6d691f7.efs.us-east-1.amazonaws.com:/ efs
-```
+#### Testando se o container WordPress está em execução
 
-
-> O WordPress estará acessível em http://localhost:80 (ou em outra porta se você alterou a configuração do arquivo), substitua "localhost" pelo endereço na sua instancia EC2 e lembre-se de que é necessário que a porta 80 esteja liberada nas regras de entrada do grupo de segurança em que a mesma pertence.
-> A linha 6 do script está mapeando o diretório /mnt/efs/wordpress no host para o diretório /var/www/html dentro do contêiner. Isso permite que o Wordpress armazene e acesse seus arquivos na pasta /mnt/efs/wordpress no host, ou seja, no sistema de arquivos que criamos anteriormente.
-- Para testar se o container está rodando execute:
+Caso isso não aconteça, acesse o terminal da sua instancia pela AWS ou via PUTTY.
+- Para testar se o container está rodando execute o comando:
 ```
 docker ps
 ```
-Este comando listará os containers em execução. Outra forma de testar se a aplicação está rodando é acessar "http://<IP_da_sua_instancia>" no navegador, logo deverá carregar a página de instalação do WordPress.
+Este comando listará os containers em execução. 
+<p align="center">
+  <img src="https://i.ibb.co/z23wHRZ/docker-ps.png"/>
+</p>
 
-## Testando a conexão com o banco MySQL (RDS)
+Outra forma de verificar algum erro é acessando as logs do container. Executando o comando:
+```
+docker logs <ID_do_container>
+```
+<p align="center">
+  <img src="https://i.ibb.co/4Z9M6Y4/logs-container.png"/>
+</p>
+Na imagem acima foram destacados apenas dois exemplos, essas mensagens de log são informações úteis para acompanhar o processo de inicialização do contêiner do Wordpress e verificar se tudo ocorreu conforme o esperado.
+
+**"Complete! WordPress has been successfully copied to /var/www/html":** Essa mensagem indica que os arquivos do Wordpress foram copiados com sucesso para o diretório /var/www/html.
+
+**"No 'wp-config.php' found in /var/www/html, but 'WORDPRESS_...' variables supplied; copying 'wp-config-docker.php' (WORDPRESS_DB_HOST WORDPRESS_DB_NAME WORDPRESS_DB_PASSWORD WORDPRESS_DB_USER)":** Essa mensagem indica que não foi encontrado um arquivo 'wp-config.php' no diretório /var/www/html. No entanto, o contêiner recebeu variáveis de ambiente com prefixo 'WORDPRESS_' que fornecem as informações necessárias para a configuração do banco de dados. Em vez do arquivo 'wp-config.php', o contêiner está copiando um arquivo de configuração alternativo chamado 'wp-config-docker.php', que será usado para configurar a conexão com o banco de dados com base nas variáveis de ambiente fornecidas.
+
+#### Testando a instalação do Docker e Docker Compose
+
+- Caso o container não esteja rodando, execute os comandos abaixo para retornar a versão do Docker e docker-compose, assim podemos nos certidicadas de que foram instalados caso retorne a versão dos mesmos.
+```
+docker --version
+```
+```
+docker-compose --version
+```
+
+#### Testando a conexão com o banco MySQL (RDS)
+
 - Acesse o container criado anteriormente através do seu ID e com o comando:
 ```
 docker exec -it <ID_do_contêiner_wordpress> /bin/bash
@@ -200,8 +234,11 @@ docker exec -it <ID_do_contêiner_wordpress> /bin/bash
 ```
 nc -vz <nome_do_host_do_banco_de_dados> 3306
 ```
- Substitua <nome_do_host_do_banco_de_dados> pelo endpoint do seu RDS lá da AWS. O comando deve retornar algo como esta mensagem de sucesso: " "
-  
+ Substitua <nome_do_host_do_banco_de_dados> pelo endpoint do seu RDS lá da AWS. O comando deve retornar algo como esta mensagem de sucesso:
+<p align="center">
+  <img src="https://i.ibb.co/cbRGGYv/conexao-banco.png"/>
+</p>
+
 - Caso dê algum erro no comando é porque o pacote netcat não vem instalado como padrão do container. Execute os dois comandos abaixo e tente novamente.
 ```
 apt-get update
@@ -209,6 +246,23 @@ apt-get update
 ```
 apt-get install -y netcat
 ``` 
+- Execute "exit" para sair do terminal do container e voltar para o da sua instancia.
+
+Para testar se o EFS foi criado corretamente e está salvando os arquivos estáticos do WordPress acesse o diretório e montagem:
+```
+cd /mnt/efs/wordpress
+```
+- Estando dentro da pasta execute o comando "ls" para listar o contéudo da mesma. O correto é retornar os arquivos de configuração do WordPress como na imagem abaixo.
+<p align="center">
+  <img src="https://i.ibb.co/183nSWW/diretorio-efs-wordpress.png"/>
+</p>
+
+- Assim conseguimos testar praticamente toda aplicação mas se você ainda estiver enfrentando problemas pode executar os logs de inicialização da instancia com o comando:
+```
+sudo cat /var/log/cloud-init-output.log
+```
+Os logs de inicialização são armazenados nesses arquivos apenas se a instância tiver sido configurada para registrar logs de inicialização. Portanto, se você não encontrar informações relevantes nos logs mencionados, verifique outros arquivos de log disponíveis no diretório /var/log/ ou consulte a documentação, alguns links foram deixados como referencia neste repositório.
+
 ## Criar uma AMI a partir da minha EC2
 - Acesse o serviço EC2 da AWS, em instancias selecione a que subimos o container com WordPress e as demais configurações.
 - No canto superior direito clique em "Ações" > "imagem e modelos" > "criar imagem".
