@@ -57,7 +57,7 @@ Contruir e documentar o processo de criação e configuração da seguinte arqui
 
 - Em seguida clique em adicionar regras de entrada e libere as seguintes portas.
 <p align="center">
-  <img src="https://i.ibb.co/whVdjt7/regra-de-seguran-a.png"/>
+  <img src="https://i.ibb.co/Ky9PPRG/aaa.png"/>
 </p>
 
 - Por fim clique em "Criar grupo de segurança".
